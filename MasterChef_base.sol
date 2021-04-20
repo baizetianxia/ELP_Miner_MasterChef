@@ -1428,13 +1428,13 @@ contract MasterChef is Ownable {
     // Dev address.
     //address public devaddr;
     // Block number when bonus SUSHI period ends.
-    uint256 public bonusEndBlock;
+    //uint256 public bonusEndBlock;
     // SUSHI tokens created per block.
     uint256 public sushiPerBlock;
     // Bonus muliplier for early sushi makers.
     //uint256 public constant BONUS_MULTIPLIER = 10;
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
-    IMigratorChef public migrator;
+    //IMigratorChef public migrator;
 
     // Info of each pool.
     PoolInfo[] public poolInfo;
@@ -1447,7 +1447,7 @@ contract MasterChef is Ownable {
     
     //add code
     uint256 public constant ONE_DAY_BLOCKS = 28800;//3s/block;ONE_DAY_BLOCKS = 60/3*60*24 //for live
-    //uint256 public constant ONE_DAY_BLOCKS = 7200;//for test
+    //uint256 public constant ONE_DAY_BLOCKS = 300;//15 minus for test
     
     //deflationRate
     mapping(uint256 => uint256) public deflationRate_;//per 1e12
@@ -1463,7 +1463,7 @@ contract MasterChef is Ownable {
     constructor(
         SushiToken _sushi,
         //address _devaddr,
-        uint256 _sushiPerBlock,
+        uint256 _sushiPerBlock,//10000 ELP first day => //347222222222222222/block decimals=18//0.347222222222222222/block
         uint256 _startBlock,
         //uint256 _bonusEndBlock
         uint256 _allEndBlock
@@ -1511,9 +1511,9 @@ contract MasterChef is Ownable {
     }
 
     // Set the migrator contract. Can only be called by the owner.
-    function setMigrator(IMigratorChef _migrator) public onlyOwner {
-        migrator = _migrator;
-    }
+    // function setMigrator(IMigratorChef _migrator) public onlyOwner {
+    //     migrator = _migrator;
+    // }
 
     // Migrate lp token to another lp contract. Can be called by anyone. We trust that migrator contract is good.
     // function migrate(uint256 _pid) public {
