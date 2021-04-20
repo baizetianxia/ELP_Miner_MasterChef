@@ -1426,13 +1426,13 @@ contract MasterChef is Ownable {
     // The SUSHI TOKEN!
     SushiToken public sushi;
     // Dev address.
-    address public devaddr;
+    //address public devaddr;
     // Block number when bonus SUSHI period ends.
     uint256 public bonusEndBlock;
     // SUSHI tokens created per block.
     uint256 public sushiPerBlock;
     // Bonus muliplier for early sushi makers.
-    uint256 public constant BONUS_MULTIPLIER = 10;
+    //uint256 public constant BONUS_MULTIPLIER = 10;
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
     IMigratorChef public migrator;
 
@@ -1444,6 +1444,17 @@ contract MasterChef is Ownable {
     uint256 public totalAllocPoint = 0;
     // The block number when SUSHI mining starts.
     uint256 public startBlock;
+    
+    //add code
+    uint256 public constant ONE_DAY_BLOCKS = 28800;//3s/block;ONE_DAY_BLOCKS = 60/3*60*24 //for live
+    //uint256 public constant ONE_DAY_BLOCKS = 7200;//for test
+    
+    //deflationRate
+    mapping(uint256 => uint256) public deflationRate_;//per 1e12
+    
+    uint256 public allEndBlock;//720*28800
+    
+    
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -1451,16 +1462,23 @@ contract MasterChef is Ownable {
 
     constructor(
         SushiToken _sushi,
-        address _devaddr,
+        //address _devaddr,
         uint256 _sushiPerBlock,
         uint256 _startBlock,
-        uint256 _bonusEndBlock
+        //uint256 _bonusEndBlock
+        uint256 _allEndBlock
     ) public {
         sushi = _sushi;
-        devaddr = _devaddr;
+        //devaddr = _devaddr;
         sushiPerBlock = _sushiPerBlock;
-        bonusEndBlock = _bonusEndBlock;
+        //bonusEndBlock = _bonusEndBlock;
         startBlock = _startBlock;
+        
+        allEndBlock = _allEndBlock;
+        deflationRate_[1] = 1e12;
+        for(uint256 i=2; i<100; i++) {
+            deflationRate_[i] = deflationRate_[i-1].mul(99).div(100);
+        }
     }
 
     function poolLength() external view returns (uint256) {
@@ -1498,29 +1516,96 @@ contract MasterChef is Ownable {
     }
 
     // Migrate lp token to another lp contract. Can be called by anyone. We trust that migrator contract is good.
-    function migrate(uint256 _pid) public {
-        require(address(migrator) != address(0), "migrate: no migrator");
-        PoolInfo storage pool = poolInfo[_pid];
-        IERC20 lpToken = pool.lpToken;
-        uint256 bal = lpToken.balanceOf(address(this));
-        lpToken.safeApprove(address(migrator), bal);
-        IERC20 newLpToken = migrator.migrate(lpToken);
-        require(bal == newLpToken.balanceOf(address(this)), "migrate: bad");
-        pool.lpToken = newLpToken;
-    }
+    // function migrate(uint256 _pid) public {
+    //     require(address(migrator) != address(0), "migrate: no migrator");
+    //     PoolInfo storage pool = poolInfo[_pid];
+    //     IERC20 lpToken = pool.lpToken;
+    //     uint256 bal = lpToken.balanceOf(address(this));
+    //     lpToken.safeApprove(address(migrator), bal);
+    //     IERC20 newLpToken = migrator.migrate(lpToken);
+    //     require(bal == newLpToken.balanceOf(address(this)), "migrate: bad");
+    //     pool.lpToken = newLpToken;
+    // }
 
     // Return reward multiplier over the given _from to _to block.
-    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
-        if (_to <= bonusEndBlock) {
-            return _to.sub(_from).mul(BONUS_MULTIPLIER);
-        } else if (_from >= bonusEndBlock) {
-            return _to.sub(_from);
-        } else {
-            return bonusEndBlock.sub(_from).mul(BONUS_MULTIPLIER).add(
-                _to.sub(bonusEndBlock)
-            );
+    // function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
+    //     if (_to <= bonusEndBlock) {
+    //         return _to.sub(_from).mul(BONUS_MULTIPLIER);
+    //     } else if (_from >= bonusEndBlock) {
+    //         return _to.sub(_from);
+    //     } else {
+    //         return bonusEndBlock.sub(_from).mul(BONUS_MULTIPLIER).add(
+    //             _to.sub(bonusEndBlock)
+    //         );
+    //     }
+    // }
+    
+    // Return reward multiplier over the given _from to _to block.
+    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {// maybe need *100
+        if (_from >= allEndBlock) {
+            return 0;
         }
+        uint realTo = _to;
+        if (_to >= allEndBlock) {
+            realTo = allEndBlock;
+        }
+        uint256 equiFromBlock = convertToFirstDay(_from);
+        uint256 equiToBlock = convertToFirstDay(realTo);
+        
+        return equiToBlock.sub(equiFromBlock);
+        
     }
+    
+    function convertToFirstDay(uint256 _toBlock) internal view returns(uint256) {//the part of GT startBlock.add(ONE_DAY_BLOCKS) converted to first day‘s block
+        //require(_toBlock > startBlock.add(ONE_YEAR_BLOCKS));
+        if(_toBlock <= startBlock){
+            return 0;
+        }
+        // if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(1))) {
+        //     return _toBlock.sub(startBlock).mul(deflationRate_[1]).div(1000000);
+        // }else if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(2))) {
+        //     uint256 lastDeflaBlocks_ = _toBlock.sub(startBlock.add(ONE_DAY_BLOCKS.mul(1))).mul(deflationRate_[2]).div(1000000);
+        //     return lastDeflaBlocks_.add(ONE_DAY_BLOCKS.mul(deflationRate_[1]).div(1000000));
+        // }else if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(3))) {
+        //     uint256 lastDeflaBlocks_ = _toBlock.sub(startBlock.add(ONE_DAY_BLOCKS.mul(2))).mul(deflationRate_[3]).div(1000000);
+        //     return lastDeflaBlocks_.add(ONE_DAY_BLOCKS.mul(deflationRate_[2].add(deflationRate_[1])).div(1000000));
+        // }else if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(4))) {
+        //     uint256 lastDeflaBlocks_ = _toBlock.sub(startBlock.add(ONE_DAY_BLOCKS.mul(3))).mul(deflationRate_[4]).div(1000000);
+        //     return lastDeflaBlocks_.add(ONE_DAY_BLOCKS.mul(deflationRate_[3].add(deflationRate_[2]).add(deflationRate_[1])).div(1000000));
+        // }else if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(5))) {
+        //     uint256 lastDeflaBlocks_ = _toBlock.sub(startBlock.add(ONE_DAY_BLOCKS.mul(4))).mul(deflationRate_[5]).div(1000000);
+        //     return lastDeflaBlocks_.add(ONE_DAY_BLOCKS.mul(deflationRate_[4].add(deflationRate_[3].add(deflationRate_[2]).add(deflationRate_[1]))).div(1000000));
+        // }
+        
+        // calculate equivalent block number
+        // index = _toBlock / ONE_DAY_BLOCKS
+        // modBlocks = _toBlock % ONE_DAY_BLOCKS
+        // lastDeflaBlocks = modBlocks * deflationRate_[index]/1e12
+        // totalDeflaRate = deflationRate_[1]*(1-0.99^(index-1))/(1-0.99)
+        // equiBlocks = totalDeflaRate* ONE_DAY_BLOCKS + lastDeflaBlocks
+        
+        for(uint256 i = 2;i <= 720;i++) {//to be check
+            if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(i))) {
+                uint256 lastDeflaBlocks = _toBlock.sub(startBlock.add(ONE_DAY_BLOCKS.mul(i-1))).mul(deflationRate_[i]).div(1e12);
+                uint256 totalDeflaRate = 0;//except lastDeflaBlocks
+                
+                // Sum = a1*(1-0.99^n)/(1-0.99) => totalDeflaRate = deflationRate_[1]*(1-0.99^(i-1))/(1-0.99) 2^256 = 1.15*1e77
+                // totalDeflaRate = deflationRate_[1]*(1-0.99^(i-1))/(1-0.99)
+                // totalDeflaRate = deflationRate_[1]*(100-99*0.99^(i-1))/(100-99)// max(i-1) = 364 =>XXXXXX
+                
+                //need use query 
+                for (uint256 j = 1;j <=i-1;j++) {//to be check
+                    totalDeflaRate = totalDeflaRate.add(deflationRate_[j]);
+                }
+                return lastDeflaBlocks.add(ONE_DAY_BLOCKS.mul(totalDeflaRate).div(1e12));
+            }
+        }
+        
+        return 0;
+        
+    }
+    
+    
 
     // View function to see pending SUSHIs on frontend.
     function pendingSushi(uint256 _pid, address _user) external view returns (uint256) {
@@ -1543,6 +1628,13 @@ contract MasterChef is Ownable {
             updatePool(pid);
         }
     }
+    
+    address public mintAddr;
+    function setMintAddr(address _newMintAddr) public onlyOwner returns(bool) {
+        require(_newMintAddr != address(0),'_newMinter cannot be Ox00');
+        mintAddr = _newMintAddr;
+        return true;
+    }
 
     // Update reward variables of the given pool to be up-to-date.
     function updatePool(uint256 _pid) public {
@@ -1557,8 +1649,10 @@ contract MasterChef is Ownable {
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
         uint256 sushiReward = multiplier.mul(sushiPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-        sushi.mint(devaddr, sushiReward.div(10));
-        sushi.mint(address(this), sushiReward);
+        //sushi.mint(devaddr, sushiReward.div(10));
+        //sushi.mint(address(this), sushiReward);
+        sushi.transferFrom(mintAddr,address(this), sushiReward);//add code
+        
         pool.accSushiPerShare = pool.accSushiPerShare.add(sushiReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
@@ -1613,8 +1707,8 @@ contract MasterChef is Ownable {
     }
 
     // Update dev address by the previous dev.
-    function dev(address _devaddr) public {
-        require(msg.sender == devaddr, "dev: wut?");
-        devaddr = _devaddr;
-    }
+    // function dev(address _devaddr) public {
+    //     require(msg.sender == devaddr, "dev: wut?");
+    //     devaddr = _devaddr;
+    // }
 }
