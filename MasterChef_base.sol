@@ -1,6 +1,3 @@
-/**
- *Submitted for verification at Etherscan.io on 2020-08-26
-*/
 
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
@@ -1476,7 +1473,7 @@ contract MasterChef is Ownable {
         
         allEndBlock = _allEndBlock;
         deflationRate_[1] = 1e12;
-        for(uint256 i=2; i<100; i++) {
+        for(uint256 i=2; i<720; i++) {
             deflationRate_[i] = deflationRate_[i-1].mul(99).div(100);
         }
     }
@@ -1564,26 +1561,15 @@ contract MasterChef is Ownable {
         
     }
     
-    function convertToFirstDay(uint256 _toBlock) internal view returns(uint256) {//the part of GT startBlock.add(ONE_DAY_BLOCKS) converted to first day‘s block
+    function convertToFirstDay(uint256 _toBlock) public view returns(uint256) {//the part of GT startBlock.add(ONE_DAY_BLOCKS) converted to first day‘s block
         //require(_toBlock > startBlock.add(ONE_YEAR_BLOCKS));
         if(_toBlock <= startBlock){
             return 0;
         }
-        // if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(1))) {
-        //     return _toBlock.sub(startBlock).mul(deflationRate_[1]).div(1000000);
-        // }else if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(2))) {
-        //     uint256 lastDeflaBlocks_ = _toBlock.sub(startBlock.add(ONE_DAY_BLOCKS.mul(1))).mul(deflationRate_[2]).div(1000000);
-        //     return lastDeflaBlocks_.add(ONE_DAY_BLOCKS.mul(deflationRate_[1]).div(1000000));
-        // }else if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(3))) {
-        //     uint256 lastDeflaBlocks_ = _toBlock.sub(startBlock.add(ONE_DAY_BLOCKS.mul(2))).mul(deflationRate_[3]).div(1000000);
-        //     return lastDeflaBlocks_.add(ONE_DAY_BLOCKS.mul(deflationRate_[2].add(deflationRate_[1])).div(1000000));
-        // }else if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(4))) {
-        //     uint256 lastDeflaBlocks_ = _toBlock.sub(startBlock.add(ONE_DAY_BLOCKS.mul(3))).mul(deflationRate_[4]).div(1000000);
-        //     return lastDeflaBlocks_.add(ONE_DAY_BLOCKS.mul(deflationRate_[3].add(deflationRate_[2]).add(deflationRate_[1])).div(1000000));
-        // }else if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(5))) {
-        //     uint256 lastDeflaBlocks_ = _toBlock.sub(startBlock.add(ONE_DAY_BLOCKS.mul(4))).mul(deflationRate_[5]).div(1000000);
-        //     return lastDeflaBlocks_.add(ONE_DAY_BLOCKS.mul(deflationRate_[4].add(deflationRate_[3].add(deflationRate_[2]).add(deflationRate_[1]))).div(1000000));
-        // }
+        
+        if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(1))) {
+            return _toBlock.sub(startBlock).mul(deflationRate_[1]).div(1e12);
+        }
         
         // calculate equivalent block number
         // index = _toBlock / ONE_DAY_BLOCKS
