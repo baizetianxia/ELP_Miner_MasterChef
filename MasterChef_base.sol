@@ -1481,6 +1481,14 @@ contract MasterChef is Ownable {
         }
     }
 
+    // //set other epoch Reward,only owner can call
+    function setDeflationRate_(uint256 lastepoch, uint256 epochs) public onlyOwner {
+        require(lastepoch >= 2, "must increase by 2 epoch reward");
+        for(uint256 i=lastepoch; i< lastepoch.add(epochs); i++) {
+            deflationRate_[i] = deflationRate_[i-1].mul(99).div(100);
+        }
+    }
+
     function poolLength() external view returns (uint256) {
         return poolInfo.length;
     }
