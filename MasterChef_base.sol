@@ -1122,7 +1122,7 @@ pragma solidity 0.6.12;
 
 
 // SushiToken with Governance.
-contract SushiToken is ERC20("SushiToken", "SUSHI"), Ownable {
+contract SushiToken is ERC20("ELPToken", "ELP"), Ownable {
     /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
@@ -1367,10 +1367,6 @@ pragma solidity 0.6.12;
 
 
 
-
-
-
-
 interface IMigratorChef {
     // Perform LP token migration from legacy UniswapV2 to SushiSwap.
     // Take the current LP token address and return the new LP token address.
@@ -1423,13 +1419,13 @@ contract MasterChef is Ownable {
     // The SUSHI TOKEN!
     SushiToken public sushi;
     // Dev address.
-    //address public devaddr;
+    //address public devaddr;//delete useless variable
     // Block number when bonus SUSHI period ends.
-    //uint256 public bonusEndBlock;
+    //uint256 public bonusEndBlock;//delete useless variable
     // SUSHI tokens created per block.
     uint256 public sushiPerBlock;
     // Bonus muliplier for early sushi makers.
-    //uint256 public constant BONUS_MULTIPLIER = 10;
+    //uint256 public constant BONUS_MULTIPLIER = 10;//delete useless const
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
     //IMigratorChef public migrator;
 
@@ -1439,12 +1435,16 @@ contract MasterChef is Ownable {
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;
     // Total allocation poitns. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
+    //startBlock as first day's start block
     // The block number when SUSHI mining starts.
     uint256 public startBlock;
     
     //add code
     uint256 public constant ONE_DAY_BLOCKS = 28800;//3s/block;ONE_DAY_BLOCKS = 60/3*60*24 //for live
     //uint256 public constant ONE_DAY_BLOCKS = 300;//15 minus for test
+    
+    // end reward days
+    uint256 public END_DAYS = 720;
     
     //deflationRate
     mapping(uint256 => uint256) public deflationRate_;//per 1e12
@@ -1461,6 +1461,8 @@ contract MasterChef is Ownable {
         SushiToken _sushi,
         //address _devaddr,
         uint256 _sushiPerBlock,//10000 ELP first day => //347222222222222222/block decimals=18//0.347222222222222222/block
+        //nowBlocks - 28800*4 = 8141821 -28800*4 = 8026621 for test
+        //old deploy Blocks 6630240 mainnet
         uint256 _startBlock,
         //uint256 _bonusEndBlock
         uint256 _allEndBlock
@@ -1469,11 +1471,12 @@ contract MasterChef is Ownable {
         //devaddr = _devaddr;
         sushiPerBlock = _sushiPerBlock;
         //bonusEndBlock = _bonusEndBlock;
+        
         startBlock = _startBlock;
         
         allEndBlock = _allEndBlock;
         deflationRate_[1] = 1e12;
-        for(uint256 i=2; i<720; i++) {
+        for(uint256 i=2; i<= END_DAYS; i++) {
             deflationRate_[i] = deflationRate_[i-1].mul(99).div(100);
         }
     }
@@ -1485,6 +1488,7 @@ contract MasterChef is Ownable {
             deflationRate_[i] = deflationRate_[i-1].mul(99).div(100);
         }
     }
+    
 
     function poolLength() external view returns (uint256) {
         return poolInfo.length;
@@ -1514,7 +1518,8 @@ contract MasterChef is Ownable {
         totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
         poolInfo[_pid].allocPoint = _allocPoint;
     }
-
+    
+    //delete useless function,
     // Set the migrator contract. Can only be called by the owner.
     // function setMigrator(IMigratorChef _migrator) public onlyOwner {
     //     migrator = _migrator;
@@ -1531,7 +1536,7 @@ contract MasterChef is Ownable {
     //     require(bal == newLpToken.balanceOf(address(this)), "migrate: bad");
     //     pool.lpToken = newLpToken;
     // }
-
+    //delete useless function,
     // Return reward multiplier over the given _from to _to block.
     // function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
     //     if (_to <= bonusEndBlock) {
@@ -1546,7 +1551,7 @@ contract MasterChef is Ownable {
     // }
     
     // Return reward multiplier over the given _from to _to block.
-    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {// maybe need *100
+    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
         if (_from >= allEndBlock) {
             return 0;
         }
@@ -1562,9 +1567,9 @@ contract MasterChef is Ownable {
     }
     
     function convertToFirstDay(uint256 _toBlock) public view returns(uint256) {//the part of GT startBlock.add(ONE_DAY_BLOCKS) converted to first day‘s block
-        //require(_toBlock > startBlock.add(ONE_YEAR_BLOCKS));
+        
         if(_toBlock <= startBlock){
-            return 0;
+            return startBlock;
         }
         
         if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(1))) {
@@ -1578,7 +1583,7 @@ contract MasterChef is Ownable {
         // totalDeflaRate = deflationRate_[1]*(1-0.99^(index-1))/(1-0.99)
         // equiBlocks = totalDeflaRate* ONE_DAY_BLOCKS + lastDeflaBlocks
         
-        for(uint256 i = 2;i <= 720;i++) {//to be check
+        for(uint256 i = 2;i <= END_DAYS;i++) {//to be check
             if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(i))) {
                 uint256 lastDeflaBlocks = _toBlock.sub(startBlock.add(ONE_DAY_BLOCKS.mul(i-1))).mul(deflationRate_[i]).div(1e12);
                 uint256 totalDeflaRate = 0;//except lastDeflaBlocks
@@ -1623,6 +1628,7 @@ contract MasterChef is Ownable {
         }
     }
     
+    //mintAddr as reward pool to support MasterChef transferFrom
     address public mintAddr;
     function setMintAddr(address _newMintAddr) public onlyOwner returns(bool) {
         require(_newMintAddr != address(0),'_newMinter cannot be Ox00');
@@ -1643,7 +1649,9 @@ contract MasterChef is Ownable {
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
         uint256 sushiReward = multiplier.mul(sushiPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+        //delete useless action
         //sushi.mint(devaddr, sushiReward.div(10));
+        //replace sushi.mint with sushi.transferFrom
         //sushi.mint(address(this), sushiReward);
         sushi.transferFrom(mintAddr,address(this), sushiReward);//add code
         
@@ -1699,7 +1707,8 @@ contract MasterChef is Ownable {
             sushi.transfer(_to, _amount);
         }
     }
-
+    
+    //delete useless function,
     // Update dev address by the previous dev.
     // function dev(address _devaddr) public {
     //     require(msg.sender == devaddr, "dev: wut?");
