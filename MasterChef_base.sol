@@ -2,7 +2,6 @@
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
 
-
 pragma solidity ^0.6.0;
 
 /**
@@ -1479,7 +1478,15 @@ contract MasterChef is Ownable {
             for(uint256 i=2; i<= END_DAYS; i++) {   
                 deflationRate_[i] = deflationRate_[i-1].mul(99).div(100);   
             }   
-        }
+     }
+     
+     mapping(uint256 => uint256) public allDeflationRate_;
+     function setAllDeflaRate() public onlyOwner returns(bool) {
+         allDeflationRate_[1] = deflationRate_[1];
+         for(uint256 i=2; i<= END_DAYS; i++) {   
+            allDeflationRate_[i] = allDeflationRate_[i-1].add(deflationRate_[i]);   
+         }
+     }
 
     // //set other epoch Reward,only owner can call
     function setDeflationRate_(uint256 lastepoch, uint256 epochs) public onlyOwner {
@@ -1552,31 +1559,31 @@ contract MasterChef is Ownable {
     
     // Return reward multiplier over the given _from to _to block.
     function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
+        
         //return 0 when two case happen
         if (_from >= allEndBlock || _from >=_to) {
             return 0;
         }
         
         if (_to >= allEndBlock) {
-            _to = allEndBlock;
+            _to = allEndBlock.sub(1);
         }
         
         uint256 from_day = _from.sub(startBlock).div(ONE_DAY_BLOCKS).add(1);
         uint256 to_day = _to.sub(startBlock).div(ONE_DAY_BLOCKS).add(1);
         uint256 blocks;
-        if (to_day == 1) {
-            return _to.sub(_from);
-        } else if (from_day == to_day){
+        if (from_day == to_day){
             return _to.sub(_from).mul(deflationRate_[from_day]).div(1e12);
         } else {
-            uint256 from_day_Block = startBlock.add(ONE_DAY_BLOCKS.mul(from_day)).sub(_from).mul(deflationRate_[from_day]);
+            uint256 from_day_block = startBlock.add(ONE_DAY_BLOCKS.mul(from_day)).sub(_from).mul(deflationRate_[from_day]);
             uint256 to_day_block = _to.sub(startBlock.add(ONE_DAY_BLOCKS.mul(to_day-1))).mul(deflationRate_[to_day]);
-            blocks = from_day_Block + to_day_block;
-            for(uint256 i = from_day.add(1); i<to_day; i++) {
-                blocks += ONE_DAY_BLOCKS.mul(deflationRate_[i]);
-            }
+            blocks = from_day_block + to_day_block;
+            // for(uint256 i = from_day.add(1); i<to_day; i++) {
+            //     blocks += ONE_DAY_BLOCKS.mul(deflationRate_[i]);
+            // }
+            blocks = allDeflationRate_[to_day].sub(allDeflationRate_[from_day]).mul(ONE_DAY_BLOCKS).add(blocks);
         }
-        return blocks.div(1e12);
+        return blocks;
     }
     
     // View function to see pending SUSHIs on frontend.
@@ -1587,7 +1594,7 @@ contract MasterChef is Ownable {
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 sushiReward = multiplier.mul(sushiPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+            uint256 sushiReward = multiplier.mul(sushiPerBlock).mul(pool.allocPoint).div(totalAllocPoint).div(1e12);
             accSushiPerShare = accSushiPerShare.add(sushiReward.mul(1e12).div(lpSupply));
         }
         return user.amount.mul(accSushiPerShare).div(1e12).sub(user.rewardDebt);
@@ -1621,7 +1628,7 @@ contract MasterChef is Ownable {
             return;
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 sushiReward = multiplier.mul(sushiPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+        uint256 sushiReward = multiplier.mul(sushiPerBlock).mul(pool.allocPoint).div(totalAllocPoint).div(1e12);
         //delete useless action
         //sushi.mint(devaddr, sushiReward.div(10));
         //replace sushi.mint with sushi.transferFrom
@@ -1687,7 +1694,6 @@ contract MasterChef is Ownable {
     //     require(msg.sender == devaddr, "dev: wut?");
     //     devaddr = _devaddr;
     // }
-
     // return the days of xxx block number from startBlock
     function getGivenBlockDay(uint256 blocknumber) public view returns (uint256) {
         return blocknumber.sub(startBlock).div(ONE_DAY_BLOCKS).add(1);
