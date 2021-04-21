@@ -1552,13 +1552,13 @@ contract MasterChef is Ownable {
     
     // Return reward multiplier over the given _from to _to block.
     function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
-        if (_from >= allEndBlock) {
+        //return 0 when two case happen
+        if (_from >= allEndBlock || _from >=_to) {
             return 0;
         }
         
-        uint realTo = _to;
         if (_to >= allEndBlock) {
-            realTo = allEndBlock;
+            _to = allEndBlock;
         }
         
         uint256 from_day = _from.sub(startBlock).div(ONE_DAY_BLOCKS).add(1);
