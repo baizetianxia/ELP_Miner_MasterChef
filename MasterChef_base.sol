@@ -1581,7 +1581,7 @@ contract MasterChef is Ownable {
             // for(uint256 i = from_day.add(1); i<to_day; i++) {
             //     blocks += ONE_DAY_BLOCKS.mul(deflationRate_[i]);
             // }
-            blocks = allDeflationRate_[to_day].sub(allDeflationRate_[from_day]).mul(ONE_DAY_BLOCKS).add(blocks);
+            blocks = allDeflationRate_[to_day - 1].sub(allDeflationRate_[from_day]).mul(ONE_DAY_BLOCKS).add(blocks);
         }
         return blocks;
     }
