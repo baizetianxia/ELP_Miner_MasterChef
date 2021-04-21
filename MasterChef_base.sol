@@ -1687,4 +1687,17 @@ contract MasterChef is Ownable {
     //     require(msg.sender == devaddr, "dev: wut?");
     //     devaddr = _devaddr;
     // }
+
+    // return the days of xxx block number from startBlock
+    function getGivenBlockDay(uint256 blocknumber) public view returns (uint256) {
+        return blocknumber.sub(startBlock).div(ONE_DAY_BLOCKS).add(1);
+    }
+    // return the epoch of current block number 
+    function getCurrentEpoch() public view returns (uint256) {
+        return block.number.sub(startBlock).div(ONE_DAY_BLOCKS).add(1);
+    }
+    //return the day total reward of current epoch
+    function getEpochRewards(uint256 epoch) public view returns (uint256) {
+        return sushiPerBlock.mul(deflationRate_[epoch]).mul(ONE_DAY_BLOCKS).div(1e12);
+    }
 }
