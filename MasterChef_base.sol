@@ -1457,29 +1457,29 @@ contract MasterChef is Ownable {
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 
-    constructor(
-        SushiToken _sushi,
-        //address _devaddr,
-        uint256 _sushiPerBlock,//10000 ELP first day => //347222222222222222/block decimals=18//0.347222222222222222/block
-        //nowBlocks - 28800*4 = 8141821 -28800*4 = 8026621 for test
-        //old deploy Blocks 6630240 mainnet
-        uint256 _startBlock,
-        //uint256 _bonusEndBlock
-        uint256 _allEndBlock
-    ) public {
-        sushi = _sushi;
-        //devaddr = _devaddr;
-        sushiPerBlock = _sushiPerBlock;
-        //bonusEndBlock = _bonusEndBlock;
-        
-        startBlock = _startBlock;
-        
-        allEndBlock = _allEndBlock;
-        deflationRate_[1] = 1e12;
-        for(uint256 i=2; i<= END_DAYS; i++) {
-            deflationRate_[i] = deflationRate_[i-1].mul(99).div(100);
+    constructor(    
+            SushiToken _sushi   
+            //address _devaddr, 
+            // uint256 _sushiPerBlock,//10000 ELP first day => //347222222222222222/block decimals=18//0.347222222222222222/block   
+            //nowBlocks - 28800*4 = 8141821 -28800*4 = 8026621 for test 
+            //old deploy Blocks 6630240 mainnet 
+            // uint256 _startBlock, 
+            //uint256 _bonusEndBlock    
+            // uint256 _allEndBlock 
+        ) public {  
+            sushi = _sushi; 
+            //devaddr = _devaddr;   
+            sushiPerBlock = 347222222222222222; 
+            //bonusEndBlock = _bonusEndBlock;   
+                
+            startBlock = block.number;  
+                
+            allEndBlock = startBlock + END_DAYS * ONE_DAY_BLOCKS;   
+            deflationRate_[1] = 1e12;   
+            for(uint256 i=2; i<= END_DAYS; i++) {   
+                deflationRate_[i] = deflationRate_[i-1].mul(99).div(100);   
+            }   
         }
-    }
 
     // //set other epoch Reward,only owner can call
     function setDeflationRate_(uint256 lastepoch, uint256 epochs) public onlyOwner {
