@@ -1573,7 +1573,7 @@ contract MasterChef is Ownable {
         uint256 to_day = _to.sub(startBlock).div(ONE_DAY_BLOCKS).add(1);
         uint256 blocks;
         if (from_day == to_day){
-            return _to.sub(_from).mul(deflationRate_[from_day]).div(1e12);
+            return _to.sub(_from).mul(deflationRate_[from_day]);
         } else {
             uint256 from_day_block = startBlock.add(ONE_DAY_BLOCKS.mul(from_day)).sub(_from).mul(deflationRate_[from_day]);
             uint256 to_day_block = _to.sub(startBlock.add(ONE_DAY_BLOCKS.mul(to_day-1))).mul(deflationRate_[to_day]);
