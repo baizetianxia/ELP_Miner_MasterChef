@@ -1555,57 +1555,30 @@ contract MasterChef is Ownable {
         if (_from >= allEndBlock) {
             return 0;
         }
+        
         uint realTo = _to;
         if (_to >= allEndBlock) {
             realTo = allEndBlock;
         }
-        uint256 equiFromBlock = convertToFirstDay(_from);
-        uint256 equiToBlock = convertToFirstDay(realTo);
         
-        return equiToBlock.sub(equiFromBlock);
-        
-    }
-    
-    function convertToFirstDay(uint256 _toBlock) public view returns(uint256) {//the part of GT startBlock.add(ONE_DAY_BLOCKS) converted to first day‘s block
-        
-        if(_toBlock <= startBlock){
-            return startBlock;
-        }
-        
-        if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(1))) {
-            return _toBlock.sub(startBlock).mul(deflationRate_[1]).div(1e12);
-        }
-        
-        // calculate equivalent block number
-        // index = _toBlock / ONE_DAY_BLOCKS
-        // modBlocks = _toBlock % ONE_DAY_BLOCKS
-        // lastDeflaBlocks = modBlocks * deflationRate_[index]/1e12
-        // totalDeflaRate = deflationRate_[1]*(1-0.99^(index-1))/(1-0.99)
-        // equiBlocks = totalDeflaRate* ONE_DAY_BLOCKS + lastDeflaBlocks
-        
-        for(uint256 i = 2;i <= END_DAYS;i++) {//to be check
-            if(_toBlock < startBlock.add(ONE_DAY_BLOCKS.mul(i))) {
-                uint256 lastDeflaBlocks = _toBlock.sub(startBlock.add(ONE_DAY_BLOCKS.mul(i-1))).mul(deflationRate_[i]).div(1e12);
-                uint256 totalDeflaRate = 0;//except lastDeflaBlocks
-                
-                // Sum = a1*(1-0.99^n)/(1-0.99) => totalDeflaRate = deflationRate_[1]*(1-0.99^(i-1))/(1-0.99) 2^256 = 1.15*1e77
-                // totalDeflaRate = deflationRate_[1]*(1-0.99^(i-1))/(1-0.99)
-                // totalDeflaRate = deflationRate_[1]*(100-99*0.99^(i-1))/(100-99)// max(i-1) = 364 =>XXXXXX
-                
-                //need use query 
-                for (uint256 j = 1;j <=i-1;j++) {//to be check
-                    totalDeflaRate = totalDeflaRate.add(deflationRate_[j]);
-                }
-                return lastDeflaBlocks.add(ONE_DAY_BLOCKS.mul(totalDeflaRate).div(1e12));
+        uint256 from_day = _from.sub(startBlock).div(ONE_DAY_BLOCKS).add(1);
+        uint256 to_day = _to.sub(startBlock).div(ONE_DAY_BLOCKS).add(1);
+        uint256 blocks;
+        if (to_day == 1) {
+            return _to.sub(_from);
+        } else if (from_day == to_day){
+            return _to.sub(_from).mul(deflationRate_[from_day]).div(1e12);
+        } else {
+            uint256 from_day_Block = startBlock.add(ONE_DAY_BLOCKS.mul(from_day)).sub(_from).mul(deflationRate_[from_day]);
+            uint256 to_day_block = _to.sub(startBlock.add(ONE_DAY_BLOCKS.mul(to_day-1))).mul(deflationRate_[to_day]);
+            blocks = from_day_Block + to_day_block;
+            for(uint256 i = from_day.add(1); i<to_day; i++) {
+                blocks += ONE_DAY_BLOCKS.mul(deflationRate_[i]);
             }
         }
-        
-        return 0;
-        
+        return blocks.div(1e12);
     }
     
-    
-
     // View function to see pending SUSHIs on frontend.
     function pendingSushi(uint256 _pid, address _user) external view returns (uint256) {
         PoolInfo storage pool = poolInfo[_pid];
