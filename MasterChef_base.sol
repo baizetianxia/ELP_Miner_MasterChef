@@ -1415,7 +1415,7 @@ contract MasterChef is Ownable {
         uint256 accSushiPerShare; // Accumulated SUSHIs per share, times 1e12. See below.
     }
 
-    // The SUSHI TOKEN!
+    // The ELP TOKEN!
     SushiToken public sushi;
     // Dev address.
     //address public devaddr;//delete useless variable
@@ -1439,39 +1439,31 @@ contract MasterChef is Ownable {
     uint256 public startBlock;
     
     //add code
-    uint256 public constant ONE_DAY_BLOCKS = 28800;//3s/block;ONE_DAY_BLOCKS = 60/3*60*24 //for live
-    //uint256 public constant ONE_DAY_BLOCKS = 300;//15 minus for test
+    uint256 public constant ONE_DAY_BLOCKS = 28800;//3s/block;ONE_DAY_BLOCKS = 60/3*60*24 //for prod
     
     // end reward days
     uint256 public END_DAYS = 720;
     
-    //deflationRate
+    //record deflationRate
     mapping(uint256 => uint256) public deflationRate_;//per 1e12
     
     uint256 public allEndBlock;//720*28800
     
-    
-
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 
-    constructor(    
+    constructor(
             SushiToken _sushi   
-            //address _devaddr, 
-            // uint256 _sushiPerBlock,//10000 ELP first day => //347222222222222222/block decimals=18//0.347222222222222222/block   
-            //nowBlocks - 28800*4 = 8141821 -28800*4 = 8026621 for test 
-            //old deploy Blocks 6630240 mainnet 
-            // uint256 _startBlock, 
-            //uint256 _bonusEndBlock    
-            // uint256 _allEndBlock 
+            
         ) public {  
             sushi = _sushi; 
-            //devaddr = _devaddr;   
-            sushiPerBlock = 347222222222222222; 
+            //devaddr = _devaddr;
+            //347222222222222222/block decimals=18//0.347222222222222222/block   
+            sushiPerBlock = 347222222222222222;
             //bonusEndBlock = _bonusEndBlock;   
                 
-            startBlock = block.number;  
+            startBlock = block.number.sub(ONE_DAY_BLOCKS.mul(7));
                 
             allEndBlock = startBlock + END_DAYS * ONE_DAY_BLOCKS;   
             deflationRate_[1] = 1e12;   
@@ -1525,37 +1517,6 @@ contract MasterChef is Ownable {
         totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
         poolInfo[_pid].allocPoint = _allocPoint;
     }
-    
-    //delete useless function,
-    // Set the migrator contract. Can only be called by the owner.
-    // function setMigrator(IMigratorChef _migrator) public onlyOwner {
-    //     migrator = _migrator;
-    // }
-
-    // Migrate lp token to another lp contract. Can be called by anyone. We trust that migrator contract is good.
-    // function migrate(uint256 _pid) public {
-    //     require(address(migrator) != address(0), "migrate: no migrator");
-    //     PoolInfo storage pool = poolInfo[_pid];
-    //     IERC20 lpToken = pool.lpToken;
-    //     uint256 bal = lpToken.balanceOf(address(this));
-    //     lpToken.safeApprove(address(migrator), bal);
-    //     IERC20 newLpToken = migrator.migrate(lpToken);
-    //     require(bal == newLpToken.balanceOf(address(this)), "migrate: bad");
-    //     pool.lpToken = newLpToken;
-    // }
-    //delete useless function,
-    // Return reward multiplier over the given _from to _to block.
-    // function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
-    //     if (_to <= bonusEndBlock) {
-    //         return _to.sub(_from).mul(BONUS_MULTIPLIER);
-    //     } else if (_from >= bonusEndBlock) {
-    //         return _to.sub(_from);
-    //     } else {
-    //         return bonusEndBlock.sub(_from).mul(BONUS_MULTIPLIER).add(
-    //             _to.sub(bonusEndBlock)
-    //         );
-    //     }
-    // }
     
     // Return reward multiplier over the given _from to _to block.
     function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
@@ -1690,12 +1651,6 @@ contract MasterChef is Ownable {
         }
     }
     
-    //delete useless function,
-    // Update dev address by the previous dev.
-    // function dev(address _devaddr) public {
-    //     require(msg.sender == devaddr, "dev: wut?");
-    //     devaddr = _devaddr;
-    // }
     // return the days of xxx block number from startBlock
     function getGivenBlockDay(uint256 blocknumber) public view returns (uint256) {
         return blocknumber.sub(startBlock).div(ONE_DAY_BLOCKS).add(1);
